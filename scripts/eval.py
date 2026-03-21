@@ -1,3 +1,9 @@
+import sys
+from unittest.mock import MagicMock
+sys.modules['pynput'] = MagicMock()
+sys.modules['pynput.keyboard'] = MagicMock()
+
+
 import multiprocessing
 
 if multiprocessing.get_start_method() != "spawn":
