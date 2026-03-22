@@ -32,7 +32,7 @@ policy:
       shape: [12]
 
 output_dir: outputs/train/dp_top_short
-batch_size: 16
+batch_size: 8
 steps: 30000
 save_freq: 5000
 log_freq: 1000
