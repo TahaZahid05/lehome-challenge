@@ -26,7 +26,7 @@ policy:
       type: VISUAL
       shape: [3, 480, 640]
     observation.top_depth:
-      type: DEPTH
+      type: STATE
       shape: [1, 480, 640]
   
   output_features:
