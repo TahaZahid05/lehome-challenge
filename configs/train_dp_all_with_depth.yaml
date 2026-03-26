@@ -36,9 +36,9 @@ policy:
 
 output_dir: outputs/train/dp_all_with_depth
 batch_size: 8
-steps: 30000
-save_freq: 5000
-log_freq: 1000
+steps: 330000
+save_freq: 33000
+log_freq: 3300
 
 wandb:
   enable: false

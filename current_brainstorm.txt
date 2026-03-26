@@ -1,0 +1,10 @@
+1) Why such a big difference in performance from baseline? Do we have pretraining in DP?
+
+2) use grayscale rather than rgb?
+
+3) train garment classifier
+
+
+Things to add after we have taken care of all previous considerations
+1) NOCS (adapt to our scenario)
+2) 3DP
