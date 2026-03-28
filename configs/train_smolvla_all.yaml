@@ -1,0 +1,37 @@
+dataset:
+  repo_id: four_types_merged_with_depth
+  root: Datasets/example/four_types_merged_with_depth
+
+policy:
+  type: smolvla
+  device: cuda
+  push_to_hub: false
+  
+  input_features:
+    observation.state:
+      type: STATE
+      shape: [12]
+    observation.images.top_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+    observation.images.left_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+    observation.images.right_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+  
+  output_features:
+    action:
+      type: ACTION
+      shape: [12]
+
+output_dir: outputs/train/smolvla_four_types
+batch_size: 16
+steps: 100000
+save_freq: 20000
+log_freq: 5000
+
+wandb:
+  enable: true
+  project: lehome_smolvla

@@ -223,6 +223,7 @@ def run_evaluation_loop(
                 success=success if success_flag else torch.tensor(False),
                 save_dir=args.video_dir,
                 episode_idx=i,
+                garment_name=garment_name,
             )
 
         # Log Metrics
