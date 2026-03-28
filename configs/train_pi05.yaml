@@ -1,0 +1,48 @@
+dataset:
+  repo_id: four_types_merged_with_depth
+  root: Datasets/example/four_types_merged_with_depth
+
+policy:
+  type: pi05
+  pretrained_path: lerobot/pi05_base
+  device: cuda
+  dtype: bfloat16
+  push_to_hub: false
+
+  # Fine-tuning strategy: freeze entire VLM, train only action expert + projections
+  train_expert_only: true
+  freeze_vision_encoder: false
+
+  # Memory optimization
+  gradient_checkpointing: true
+  compile_model: false
+
+  # Input features
+  input_features:
+    observation.state:
+      type: STATE
+      shape: [12]
+    observation.images.top_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+    observation.images.left_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+    observation.images.right_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+
+  output_features:
+    action:
+      type: ACTION
+      shape: [12]
+
+output_dir: outputs/train/pi05_four_types
+batch_size: 8
+steps: 30000
+save_freq: 5000
+log_freq: 500
+
+wandb:
+  enable: true
+  project: lehome_pi05
