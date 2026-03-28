@@ -1,69 +1,35 @@
-# LeHome Challenge: Training & Evaluation Summary
+# LeHome Challenge: SmolVLA Training & Evaluation (Local)
 
-## 1. Training
-- **Config used:** configs/train_dp_all_with_depth.yaml
-- **Dataset:** Datasets/example/four_types_merged_with_depth (265,798 frames, 1,000 episodes)
-- **Policy:** Diffusion Policy (LeRobot framework)
-- **Key hyperparameters:**
-  - batch_size: 8
-  - steps: 330,000 (≈10 epochs)
-  - save_freq: 33,000
-  - log_freq: 3,300
-- **Output directory:** outputs/train/dp_all_with_depth
-- **Training observations:**
-  - Loss plateaued after ~1 epoch; early stopping is recommended if loss stops improving.
-  - Checkpoints are saved in the output directory; use the 'last' checkpoint for evaluation.
+This document summarizes the transition from Diffusion Policy to the **SmolVLA** (Vision-Language-Action) architecture and the initial results obtained from local evaluation.
 
-## 2. Evaluation
-- **Main script:** scripts/eval.py
-- **Policy type:** lerobot
-- **Evaluation dataset:** Datasets/example/four_types_merged_with_depth
-- **Garment types:** top_long, top_short, pant_long, pant_short
-- **Key arguments:**
-  - --policy_type lerobot
-  - --policy_path outputs/train/dp_all_with_depth/checkpoints/last/pretrained_model
-  - --dataset_root Datasets/example/four_types_merged_with_depth
-  - --garment_type <type>
-  - --num_episodes 5
-  - --num_envs <N> (parallel environments, e.g., 2 or 5)
-  - --enable_cameras (required for visual policies and video recording)
-  - --save_video --video_dir outputs/eval_videos_depth/<type>
-  - --headless --device cpu
-- **Example command:**
+## 1. Architecture & Training Setup
+The SmolVLA model was chosen to address the challenge's requirement for semantic reasoning on RGB images without explicit garment labels.
 
-```bash
-nohup python -m scripts.eval \
-  --policy_type lerobot \
-  --policy_path outputs/train/dp_all_with_depth/checkpoints/last/pretrained_model \
-  --dataset_root Datasets/example/four_types_merged_with_depth \
-  --garment_type top_long \
-  --num_episodes 5 \
-  --num_envs 2 \
-  --enable_cameras \
-  --save_video \
-  --video_dir outputs/eval_videos_depth/top_long \
-  --headless \
-  --device cpu \
-  > logs/eval_depth_baselines/top_long.log 2>&1 &
-```
+- **Policy Type:** `smolvla` (LeRobot based)
+- **Backbone:** `SmolVLM2-500M-Video-Instruct`
+- **Training Strategy:** **Partial Fine-Tuning (Expert-Only)**
+  - Vision Encoder: Frozen
+  - VLM Backbone: Frozen
+  - Action Expert: Trained (99.8M learnable parameters)
+- **Dataset:** `four_types_merged_with_depth` (266K frames, 1,000 episodes)
+- **Training Duration:** 60,000 steps (Batch Size 16)
+- **Hardware Profile:** RTX 4090
 
-- **Parallelism:** Increasing --num_envs increases CPU usage, not VRAM (simulation is CPU-based).
-- **CPU usage:** 100% = 1 core; 200% = 2 cores, etc. Use `htop` or `top` to monitor.
-- **Video saving:** Ensure --video_dir is unique per garment/type to avoid overwriting.
-- **Log saving:** Use shell redirection (> log.txt 2>&1) to save logs.
+## 2. Local Evaluation Results
+The following results were obtained from evaluating the **60k-step checkpoint** against the release test set in the local simulation environment.
 
-## 3. Best Practices & Notes
-- Use the 'last' checkpoint for evaluation (lowest loss, most recent state).
-- If loss plateaus, consider early stopping.
-- For each garment_type, run evaluation separately, but you can use the same merged dataset as dataset_root.
-- Monitor CPU and RAM usage when increasing --num_envs.
-- If you want structured metrics (CSV/JSON), consider patching the evaluation script to save all_episode_metrics.
+| Garment Type | SmolVLA (Local) | Baseline (Estimate) |
+| :--- | :--- | :--- |
+| **Short Pants** | **73.33%** | 68% |
+| **Long-sleeved Tops** | **56.67%** | 62% |
+| **Long Pants** | **35.00%** | 60% |
+| **Short-sleeved Tops** | **11.67%** | 38% |
 
-## 4. References
-- docs/policy_eval.md: Policy evaluation guide
-- docs/training.md: Training guide
-- docs/datasets.md: Dataset structure and usage
-- README.md: Parameter descriptions and quick start
+*Note: These are local evaluation metrics. Official results will depend on the organizers' hold-out test set and evaluation environment.*
+
+## 3. Key Technical Fixes
+- **Video Naming Improvement:** Modified `scripts/utils/eval_utils.py` and `scripts/utils/evaluation.py` to include the `garment_name` in filenames. This ensures all evaluation footage is uniquely labeled (e.g., `Shirt_0_episode1_...`) and prevents overwriting during batch runs.
+- **Log Collection:** Implemented shell redirection for evaluation commands to ensure all success/failure metrics are persistently saved for analysis.
 
 ---
-This summary provides all context needed for a new coding agent to assist with further LeHome Challenge development, training, or evaluation tasks.
+*Last Updated: 2026-03-28*
