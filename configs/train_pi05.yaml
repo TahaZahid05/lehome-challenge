@@ -11,11 +11,9 @@ policy:
 
   # Fine-tuning strategy: freeze entire VLM, train only action expert + projections
   train_expert_only: true
-  freeze_vision_encoder: false
 
   # Memory optimization
   gradient_checkpointing: true
-  compile_model: false
 
   # Input features
   input_features:
@@ -38,8 +36,9 @@ policy:
       shape: [12]
 
 output_dir: outputs/train/pi05_four_types
-batch_size: 8
-steps: 30000
+batch_size: 6
+num_workers: 0
+steps: 60000
 save_freq: 5000
 log_freq: 500
 
