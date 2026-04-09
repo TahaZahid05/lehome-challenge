@@ -1,0 +1,50 @@
+dataset:
+  repo_id: four_types_merged_with_depth
+  root: Datasets/example/four_types_merged_with_depth
+  image_transforms:
+    enable: true
+    max_num_transforms: 3
+    tfs:
+      brightness: {weight: 1.0, type: ColorJitter, kwargs: {brightness: [0.8, 1.2]}}
+      contrast: {weight: 1.0, type: ColorJitter, kwargs: {contrast: [0.8, 1.2]}}
+      # Saturation [0.0, 1.5] allows the model to see grayscale as well as colored images
+      saturation: {weight: 1.0, type: ColorJitter, kwargs: {saturation: [0.0, 1.5]}}
+      hue: {weight: 1.0, type: ColorJitter, kwargs: {hue: [-0.05, 0.05]}}
+      sharpness: {weight: 1.0, type: SharpnessJitter, kwargs: {sharpness: [0.5, 1.5]}}
+      affine: {weight: 1.0, type: RandomAffine, kwargs: {degrees: [-5.0, 5.0], translate: [0.05, 0.05]}}
+
+policy:
+  type: smolvla
+  device: cuda
+  push_to_hub: false
+  
+  input_features:
+    observation.state:
+      type: STATE
+      shape: [12]
+    observation.images.top_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+    observation.images.left_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+    observation.images.right_rgb:
+      type: VISUAL
+      shape: [3, 480, 640]
+  
+  output_features:
+    action:
+      type: ACTION
+      shape: [12]
+
+# New output directory for the augmented run
+output_dir: outputs/train/smolvla_four_types_aug
+batch_size: 64
+num_workers: 8
+steps: 100000
+save_freq: 20000
+log_freq: 5000
+
+wandb:
+  enable: true
+  project: lehome_smolvla
