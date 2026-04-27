@@ -3,6 +3,8 @@ import numpy as np
 from typing import Dict, Any, Optional, Set, Union
 from torch import Tensor
 
+from scripts.colorize_depth import colorize_depth_frame
+
 from lerobot.configs.policies import PreTrainedConfig
 from lerobot.policies.factory import make_policy, make_pre_post_processors
 from lerobot.datasets.lerobot_dataset import LeRobotDatasetMetadata
@@ -98,6 +100,17 @@ class LeRobotPolicy(BasePolicy):
         Returns:
             action: Numpy array of action values (un-normalized).
         """
+        # 0. Synthesize colorized depth if the policy needs it and raw depth is available
+        if (
+            self.input_features
+            and "observation.images.top_depth_colorized" in self.input_features
+            and "observation.images.top_depth_colorized" not in observation
+            and "observation.top_depth" in observation
+        ):
+            observation["observation.images.top_depth_colorized"] = colorize_depth_frame(
+                observation["observation.top_depth"]
+            )
+
         # 1. Filter observations (keep only what the policy needs)
         if self.input_features:
             observation = self._filter_observations(observation, self.input_features)

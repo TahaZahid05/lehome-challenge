@@ -7,17 +7,25 @@ dataset:
     tfs:
       brightness: {weight: 1.0, type: ColorJitter, kwargs: {brightness: [0.8, 1.2]}}
       contrast: {weight: 1.0, type: ColorJitter, kwargs: {contrast: [0.8, 1.2]}}
-      # Saturation [0.0, 1.5] allows the model to see grayscale as well as colored images
       saturation: {weight: 1.0, type: ColorJitter, kwargs: {saturation: [0.0, 1.5]}}
       hue: {weight: 1.0, type: ColorJitter, kwargs: {hue: [-0.05, 0.05]}}
       sharpness: {weight: 1.0, type: SharpnessJitter, kwargs: {sharpness: [0.5, 1.5]}}
       affine: {weight: 1.0, type: RandomAffine, kwargs: {degrees: [-5.0, 5.0], translate: [0.05, 0.05]}}
 
 policy:
-  type: smolvla
+  type: pi05
+  pretrained_path: lerobot/pi05_base
   device: cuda
+  dtype: bfloat16
   push_to_hub: false
-  
+  use_amp: true
+  compile_model: false
+  num_inference_steps: 10
+
+  # Memory optimization
+  gradient_checkpointing: true
+
+  # Input features
   input_features:
     observation.state:
       type: STATE
@@ -31,20 +39,29 @@ policy:
     observation.images.right_rgb:
       type: VISUAL
       shape: [3, 480, 640]
-  
+
   output_features:
     action:
       type: ACTION
       shape: [12]
 
-# New output directory for the augmented run
-output_dir: outputs/train/smolvla_four_types_aug
-batch_size: 64
-num_workers: 8
-steps: 100000
-save_freq: 5000
-log_freq: 1000
+peft:
+  method_type: LORA
+  r: 16
+  target_modules: ".*(q|k|v|o|gate|up|down)_proj"
+  full_training_modules:
+    - paligemma_with_expert.gemma_expert
+    - action_in_proj
+    - action_out_proj
+    - time_mlp_in
+    - time_mlp_out
+
+output_dir: outputs/train/pi05_full
+batch_size: 8
+steps: 60000
+save_freq: 1000
+log_freq: 500
 
 wandb:
   enable: true
-  project: lehome_smolvla
+  project: lehome_pi05

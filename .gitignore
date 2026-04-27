@@ -73,3 +73,6 @@ tests/
 .isaac-lab-docker-history
 .myenv/
 submissions/
+scripts_commands/
+scratch/
+tmp/

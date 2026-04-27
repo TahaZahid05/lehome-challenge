@@ -1,6 +1,6 @@
 dataset:
-  repo_id: four_types_merged_with_depth
-  root: Datasets/example/four_types_merged_with_depth
+  repo_id: four_types_merged_with_depth_colorized
+  root: Datasets/example/four_types_merged_with_depth_colorized
   image_transforms:
     enable: true
     max_num_transforms: 3
@@ -14,7 +14,7 @@ dataset:
       affine: {weight: 1.0, type: RandomAffine, kwargs: {degrees: [-5.0, 5.0], translate: [0.05, 0.05]}}
 
 policy:
-  type: smolvla
+  type: act
   device: cuda
   push_to_hub: false
   
@@ -31,20 +31,20 @@ policy:
     observation.images.right_rgb:
       type: VISUAL
       shape: [3, 480, 640]
+    observation.images.top_depth_colorized:
+       type: VISUAL
+       shape: [3, 480, 640]
   
   output_features:
     action:
       type: ACTION
       shape: [12]
 
-# New output directory for the augmented run
-output_dir: outputs/train/smolvla_four_types_aug
-batch_size: 64
-num_workers: 8
+output_dir: outputs/train/act_aug_depth
+batch_size: 8
 steps: 100000
 save_freq: 5000
 log_freq: 1000
 
 wandb:
-  enable: true
-  project: lehome_smolvla
+  enable: false

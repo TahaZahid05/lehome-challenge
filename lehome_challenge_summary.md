@@ -1,47 +1,87 @@
-# LeHome Challenge: SmolVLA Training & Evaluation (Local)
+# LeHome Challenge: Bi-Manual Garment Folding Summary
 
-This document summarizes the transition from Diffusion Policy to the **SmolVLA** (Vision-Language-Action) architecture and our ongoing efforts to optimize garment folding performance.
+This document details the objective, technical challenges, and sequential experimental roadmap for the bi-manual garment folding task using the **SmolVLA** architecture.
 
-## 1. Current Status: Robustness Training (In Progress)
-We are currently executing a "Robustness Run" (April 2026) using an optimized training configuration designed to address the generalization gap on "Unseen" garments.
+## 1. Task Description: Bi-Manual Multi-Garment Folding
 
-- **Config Path:** `configs/train_smolvla_aug.yaml`
-- **Batch Size:** 64 (Increased from 16 to maximize RTX 4090 utilization ~18.8GB VRAM)
-- **Data Augmentation (Visual IQ):**
-    - **Color Jitter:** Randomly varying brightness, contrast, and saturation ([0.0, 1.5]). The wide saturation range forces the model to ignore color bias (simulating grayscale-to-vibrant logic).
-    - **Random Affine:** Random ±5° rotations and ±5% translations to simulate camera bumps and varying garment placements.
-- **Hardware Optimization:** `num_workers: 8` for high-throughput data loading.
+The objective of the challenge is to develop a robust robotic policy capable of folding a diverse variety of garments with high precision and consistency. 
 
-## 2. Architecture & Baseline Strategy
-- **Policy Type:** `smolvla` (LeRobot based)
-- **Backbone:** `SmolVLM2-500M-Video-Instruct`
-- **Training Strategy:** **Partial Fine-Tuning (Expert-Only)**
-    - Vision Encoder: Frozen
-    - VLM Backbone: Frozen
-    - Action Expert: Trained (99.8M learnable parameters)
-- **Dataset:** `four_types_merged_with_depth` (266K frames, 1,000 episodes)
+### **The Robotic System**
+- **Platform:** A dual-arm (bi-manual) robot.
+- **Action Space:** 12-DOF (6-DOF per arm + 2-DOF for grippers).
+- **Control Rate:** 5-10 Hz.
 
-## 3. Local Evaluation Results (Initial Baseline)
-Results from the initial **60k-step / Batch 16** (No Augmentation) run:
+### **The Environment & Perception**
+- **Simulation:** Bedroom environment with randomized lighting and textures to simulate real-world variability.
+- **Sensors:** Three RGB cameras providing static views of the workspace:
+    - **Top View:** Global context of the garment.
+    - **Left/Right Views:** Close-up views for precision grasping and sleeve manipulation.
+- **Proprioception:** 12-dimensional joint state of the robot arms.
 
-| Garment Type | SmolVLA (Local) | Baseline (Estimate) |
-| :--- | :--- | :--- |
-| **Short Pants** | **73.33%** | 68% |
-| **Long-sleeved Tops** | **56.67%** | 62% |
-| **Long Pants** | **35.00%** | 60% |
-| **Short-sleeved Tops** | **11.67%** | 38% |
-
-*Note: These are local evaluation metrics. Official results will depend on the organizers' hold-out test set.*
-
-## 4. Future Work & Research Directions
-We are currently brainstorming modular ways to improve 3D visual perception and cross-view consistency without breaking the pre-trained VLM features.
-
-### A. Advanced 3D Integration
-- **Depth Heatmaps:** Investigating the injection of depth as a "Colorized Heatmap" (e.g., Magma/Jet colormaps). This allows the frozen VLM to perceive 3D geometry using its existing 3-channel RGB visual priors.
-
-### B. Cross-View Consistency
-- **Geometric Conditioning:** Providing **Camera Extrinsics** (position and orientation) as explicit input features. This is critical for the "Eye-in-Hand" (moving wrist cameras) to help the model anchor its visual tokens in a unified 3D workspace.
-- **Consistency Loss:** Exploring auxiliary loss terms to ensure the model's perception of the garment remains spatially consistent across the Top, Left, and Right camera feeds.
+### **The Challenge**
+Folding garments is a benchmark problem in deformable object manipulation due to:
+- **Cloth Physics:** Non-linear deformation and complex friction.
+- **Occlusions:** Fabrics often hide themselves or the robot's grippers during complex folds (e.g., sleeves).
+- **Geometric Diversity:** Significant variations in shape, texture, and size between "Pants" and "Tops."
 
 ---
-*Last Updated: 2026-04-09*
+
+## 2. Experimental Timeline & Configurations
+
+We have conducted three distinct training phases to evolve the model from a basic baseline to a more robust, fully-unfrozen architecture.
+
+### **Phase 1: Baseline SmolVLA (Expert-Only)**
+The initial strategy focused on utilizing the pre-trained features of the SmolVLM vision backbone while training a lightweight bridge to robotic actions.
+
+- **Configuration:**
+    - **Backbone:** Frozen SmolVLM2 (500M).
+    - **Action Head:** Trained MLP "Expert."
+    - **Training:** 60,000 steps with Batch Size 16.
+    - **Augmentation:** None.
+- **Performance:** 
+    - **Pant Short:** 73.33%
+    - **Top Long:** 56.67%
+    - **Pant Long:** 35.00%
+    - **Top Short:** 11.67%
+- **Takeaway:** The model achieved basic grasping but lacked the visual flexibility to handle even minor shifts in garment pose.
+
+### **Phase 2: Visual IQ (Augmentation Run)**
+To address the brittleness of Phase 1, we introduced heavy visual noise to force the model to learn geometry over color.
+
+- **Configuration:**
+    - **Augmentations:** Color Jitter (saturation up to 1.5) and Random Affine (±5° rotations, ±5% shifts).
+    - **Training:** 30,000 steps with Batch Size 64.
+- **Performance:**
+    - **Pant Short:** **81.67%** (Significant Improvement)
+    - **Top Short:** 20.00%
+    - **Top Long:** 55.00%
+    - **Pant Long:** 30.00%
+- **Takeaway:** Augmentations successfully boosted the "easiest" tasks (Short Pants) by making the model more robust to background distractions.
+
+### **Phase 3: Heavy Fine-Tuning (PEFT V2)**
+The final phase aimed at unlocking the model’s internal reasoning by allowing it to modify its own internal representation of the vision-action connection.
+
+- **Configuration:**
+    - **Framework:** PEFT (LoRA) with Rank 16.
+    - **Unfrozen Modules:** Action Head + Vision-to-VLM Connector.
+    - **Training:** 40,000 steps.
+- **Performance:**
+    - **Top Long:** **65.00%** (Record High)
+    - **Top Short:** **28.33%**
+    - **Pant Long:** **43.00%**
+    - **Pant Short:** 78.33%
+- **Takeaway:** By unfreezing the connector, the model significantly improved its performance on complex "Long" garments, where spatial coordination between the vision backbone and the robot's hands is most critical.
+
+---
+
+### **Consolidated Success Metrics**
+
+| Garment Type | Phase 1 (Base) | Phase 2 (Aug) | Phase 3 (PEFT V2) |
+| :--- | :--- | :--- | :--- |
+| **Top Long** | 56.67% | 55.00% | **65.00%** |
+| **Top Short** | 11.67% | 20.00% | **28.33%** |
+| **Pant Long** | 35.00% | 30.00% | **43.00%** |
+| **Pant Short** | 73.33% | **81.67%** | 78.33% |
+
+---
+*Last Updated: April 12, 2026*
